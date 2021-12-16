@@ -45,10 +45,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/jetstack/cert-manager/cmd/util"
-	cmmeta "github.com/jetstack/cert-manager/internal/apis/meta"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/jetstack/cert-manager/pkg/util/pki"
 )
+
+const tlsCAKey = "ca.crt"
 
 // DynamicAuthority manages a certificate authority stored in a Secret resource
 // and provides methods to obtain signed leaf certificates.
@@ -284,7 +285,7 @@ func (d *DynamicAuthority) caRequiresRegeneration(s *corev1.Secret) bool {
 	if s.Data == nil {
 		return true
 	}
-	caData := s.Data[cmmeta.TLSCAKey]
+	caData := s.Data[tlsCAKey]
 	pkData := s.Data[corev1.TLSPrivateKeyKey]
 	certData := s.Data[corev1.TLSCertKey]
 	if len(caData) == 0 || len(pkData) == 0 || len(certData) == 0 {
@@ -373,7 +374,7 @@ func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) e
 			Data: map[string][]byte{
 				corev1.TLSCertKey:       certBytes,
 				corev1.TLSPrivateKeyKey: pkBytes,
-				cmmeta.TLSCAKey:         certBytes,
+				tlsCAKey:                certBytes,
 			},
 		}, metav1.CreateOptions{})
 		return err
@@ -384,7 +385,7 @@ func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) e
 	}
 	s.Data[corev1.TLSCertKey] = certBytes
 	s.Data[corev1.TLSPrivateKeyKey] = pkBytes
-	s.Data[cmmeta.TLSCAKey] = certBytes
+	s.Data[tlsCAKey] = certBytes
 	if _, err := d.client.Update(ctx, s, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
