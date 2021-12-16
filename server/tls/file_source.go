@@ -25,9 +25,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	crlog "sigs.k8s.io/controller-runtime/pkg/log"
-
-	logf "github.com/jetstack/cert-manager/pkg/logs"
 )
 
 // FileCertificateSource provides certificate data for a golang HTTP server by
@@ -70,7 +67,7 @@ var _ CertificateSource = &FileCertificateSource{}
 
 func (f *FileCertificateSource) Run(stopCh <-chan struct{}) error {
 	if f.Log == nil {
-		f.Log = crlog.NullLogger{}
+		f.Log = logr.Discard()
 	}
 
 	updateInterval := f.UpdateInterval
@@ -104,7 +101,6 @@ func (f *FileCertificateSource) Run(stopCh <-chan struct{}) error {
 				}
 				continue
 			}
-			f.Log.V(logf.DebugLevel).Info("refreshed certificate from data on disk")
 		}
 	}
 }
@@ -138,10 +134,9 @@ func (f *FileCertificateSource) updateCertificateFromDisk() error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	if bytes.Equal(keyData, f.cachedKeyBytes) && bytes.Equal(certData, f.cachedCertBytes) {
-		f.Log.V(logf.DebugLevel).Info("key and certificate on disk have not changed")
 		return nil
 	}
-	f.Log.V(logf.InfoLevel).Info("detected private key or certificate data on disk has changed. reloading certificate")
+	f.Log.Info("detected private key or certificate data on disk has changed. reloading certificate")
 
 	cert, err := tls.X509KeyPair(certData, keyData)
 	if err != nil {

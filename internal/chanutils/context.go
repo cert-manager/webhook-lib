@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The cert-manager Authors.
+Copyright 2021 The cert-manager Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +k8s:conversion-gen=github.com/cert-manager/webhook-lib/handlers/testdata/apis/testgroup
-// +k8s:deepcopy-gen=package,register
-// +k8s:defaulter-gen=TypeMeta
+package chanutils
 
-// +groupName=testgroup.webhook-lib.cert-manager.io
-package v2
+import (
+	"context"
+)
+
+// ContextWithStopCh will wrap a context with a stop channel.
+// When the provided stopCh closes, the cancel() will be called on the context.
+// This provides a convenient way to represent a stop channel as a context.
+func ContextWithStopCh(ctx context.Context, stopCh <-chan struct{}) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		defer cancel()
+		select {
+		case <-ctx.Done():
+		case <-stopCh:
+		}
+	}()
+	return ctx
+}

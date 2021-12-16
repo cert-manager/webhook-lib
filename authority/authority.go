@@ -29,8 +29,6 @@ import (
 	"sync"
 	"time"
 
-	logf "github.com/jetstack/cert-manager/pkg/logs"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,9 +42,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/jetstack/cert-manager/cmd/util"
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/jetstack/cert-manager/pkg/util/pki"
+	"github.com/cert-manager/webhook-lib/internal/chanutils"
+	"github.com/cert-manager/webhook-lib/internal/pki"
 )
 
 const tlsCAKey = "ca.crt"
@@ -95,7 +92,7 @@ type SignFunc func(template *x509.Certificate) (*x509.Certificate, error)
 var _ SignFunc = (&DynamicAuthority{}).Sign
 
 func (d *DynamicAuthority) Run(stopCh <-chan struct{}) error {
-	ctx := util.ContextWithStopCh(context.Background(), stopCh)
+	ctx := chanutils.ContextWithStopCh(context.Background(), stopCh)
 
 	if d.SecretNamespace == "" {
 		return fmt.Errorf("SecretNamespace must be set")
@@ -260,8 +257,6 @@ func (d *DynamicAuthority) notifyWatches(newCertData, newPrivateKeyData []byte) 
 		return
 	}
 
-	d.Log.V(logf.DebugLevel).Info("Detected change in CA secret data, notifying watchers...")
-
 	d.watchMutex.Lock()
 	defer d.watchMutex.Unlock()
 	for _, ch := range d.watches {
@@ -289,7 +284,7 @@ func (d *DynamicAuthority) caRequiresRegeneration(s *corev1.Secret) bool {
 	pkData := s.Data[corev1.TLSPrivateKeyKey]
 	certData := s.Data[corev1.TLSCertKey]
 	if len(caData) == 0 || len(pkData) == 0 || len(certData) == 0 {
-		d.Log.V(logf.InfoLevel).Info("Missing data in CA secret. Regenerating")
+		d.Log.Info("Missing data in CA secret. Regenerating")
 		return true
 	}
 	// ensure that the ca.crt and tls.crt keys are equal
@@ -308,12 +303,12 @@ func (d *DynamicAuthority) caRequiresRegeneration(s *corev1.Secret) bool {
 		return true
 	}
 	if !x509Cert.IsCA {
-		d.Log.V(logf.InfoLevel).Info("Stored certificate is not marked as a CA. Regenerating...")
+		d.Log.Info("Stored certificate is not marked as a CA. Regenerating...")
 		return true
 	}
 	// renew the root CA when the current one is 2/3 of the way through its life
 	if x509Cert.NotAfter.Sub(time.Now()) < (d.CADuration / 3) {
-		d.Log.V(logf.InfoLevel).Info("Root CA certificate is nearing expiry. Regenerating...")
+		d.Log.Info("Root CA certificate is nearing expiry. Regenerating...")
 		return true
 	}
 	return false
@@ -325,12 +320,11 @@ var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
 // If the provided Secret is nil, a new secret resource will be Created.
 // Otherwise, the provided resource will be modified and Updated.
 func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) error {
-	d.Log.V(logf.DebugLevel).Info("Generating new root CA")
 	pk, err := pki.GenerateECPrivateKey(384)
 	if err != nil {
 		return err
 	}
-	pkBytes, err := pki.EncodePrivateKey(pk, cmapi.PKCS8)
+	pkBytes, err := pki.EncodePKCS8PrivateKey(pk)
 	if err != nil {
 		return err
 	}
@@ -368,7 +362,7 @@ func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) e
 				Name:      d.SecretName,
 				Namespace: d.SecretNamespace,
 				Annotations: map[string]string{
-					cmapi.AllowsInjectionFromSecretAnnotation: "true",
+					"cert-manager.io/allow-direct-injection": "true",
 				},
 			},
 			Data: map[string][]byte{
@@ -389,7 +383,6 @@ func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) e
 	if _, err := d.client.Update(ctx, s, metav1.UpdateOptions{}); err != nil {
 		return err
 	}
-	d.Log.V(logf.DebugLevel).Info("Generated new root CA")
 	return nil
 }
 

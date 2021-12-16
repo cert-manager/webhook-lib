@@ -21,16 +21,13 @@ import (
 	"fmt"
 	"net/http"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	"github.com/go-logr/logr"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apijson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/versioning"
-
-	logf "github.com/jetstack/cert-manager/pkg/logs"
 )
 
 type SchemeBackedConverter struct {
@@ -56,8 +53,6 @@ func (c *SchemeBackedConverter) convertObjects(desiredAPIVersion string, objects
 		return nil, fmt.Errorf("Failed to parse desired apiVersion: %v", err)
 	}
 
-	c.log.V(logf.DebugLevel).Info("Parsed desired groupVersion", "desired_group_version", desiredGV)
-
 	groupVersioner := schema.GroupVersions([]schema.GroupVersion{desiredGV})
 	codec := versioning.NewCodec(
 		c.serializer,
@@ -72,11 +67,10 @@ func (c *SchemeBackedConverter) convertObjects(desiredAPIVersion string, objects
 
 	convertedObjects := make([]runtime.RawExtension, len(objects))
 	for i, raw := range objects {
-		decodedObject, currentGVK, err := codec.Decode(raw.Raw, nil, nil)
+		decodedObject, _, err := codec.Decode(raw.Raw, nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to decode into apiVersion: %v", err)
 		}
-		c.log.V(logf.DebugLevel).Info("Decoded resource", "decoded_group_version_kind", currentGVK)
 		buf := bytes.Buffer{}
 		if err := codec.Encode(decodedObject, &buf); err != nil {
 			return nil, fmt.Errorf("Failed to convert to desired apiVersion: %v", err)

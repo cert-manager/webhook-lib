@@ -37,12 +37,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	runtimeutil "k8s.io/apimachinery/pkg/util/runtime"
 	ciphers "k8s.io/component-base/cli/flag"
-	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	cmdutil "github.com/jetstack/cert-manager/cmd/util"
-	logf "github.com/jetstack/cert-manager/pkg/logs"
-	"github.com/jetstack/cert-manager/pkg/util/profiling"
 	"github.com/cert-manager/webhook-lib/handlers"
+	"github.com/cert-manager/webhook-lib/internal/chanutils"
+	"github.com/cert-manager/webhook-lib/internal/profiling"
 	servertls "github.com/cert-manager/webhook-lib/server/tls"
 )
 
@@ -122,10 +120,10 @@ type handleFunc func(context.Context, runtime.Object) (runtime.Object, error)
 
 func (s *Server) Run(stopCh <-chan struct{}) error {
 	if s.Log == nil {
-		s.Log = crlog.NullLogger{}
+		s.Log = logr.Discard()
 	}
 
-	gctx := cmdutil.ContextWithStopCh(context.Background(), stopCh)
+	gctx := chanutils.ContextWithStopCh(context.Background(), stopCh)
 	g, gctx := errgroup.WithContext(gctx)
 
 	// if a HealthzAddr is provided, start the healthz listener
@@ -138,7 +136,7 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 		healthMux := http.NewServeMux()
 		healthMux.HandleFunc("/healthz", s.handleHealthz)
 		healthMux.HandleFunc("/livez", s.handleLivez)
-		s.Log.V(logf.InfoLevel).Info("listening for insecure healthz connections", "address", s.HealthzAddr)
+		s.Log.Info("listening for insecure healthz connections", "address", s.HealthzAddr)
 		server := &http.Server{
 			Handler: healthMux,
 		}
@@ -171,7 +169,7 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 		profilerMux := http.NewServeMux()
 		// Add pprof endpoints to this mux
 		profiling.Install(profilerMux)
-		s.Log.V(logf.InfoLevel).Info("running go profiler on", "address", s.PprofAddr)
+		s.Log.Info("running go profiler on", "address", s.PprofAddr)
 		server := &http.Server{
 			Handler: profilerMux,
 		}
@@ -202,7 +200,7 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 
 	// wrap the listener with TLS if a CertificateSource is provided
 	if s.CertificateSource != nil {
-		s.Log.V(logf.InfoLevel).Info("listening for secure connections", "address", s.ListenAddr)
+		s.Log.Info("listening for secure connections", "address", s.ListenAddr)
 		g.Go(func() error {
 			if err := s.CertificateSource.Run(gctx.Done()); (err != nil) && !errors.Is(err, context.Canceled) {
 				return err
@@ -224,7 +222,7 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 			PreferServerCipherSuites: true,
 		})
 	} else {
-		s.Log.V(logf.InfoLevel).Info("listening for insecure connections", "address", s.ListenAddr)
+		s.Log.Info("listening for insecure connections", "address", s.ListenAddr)
 	}
 
 	s.listener = listener
@@ -345,7 +343,7 @@ func (s *Server) handleHealthz(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if s.CertificateSource != nil && !s.CertificateSource.Healthy() {
-		s.Log.V(logf.WarnLevel).Info("Health check failed as CertificateSource is unhealthy")
+		s.Log.Info("Health check failed as CertificateSource is unhealthy")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

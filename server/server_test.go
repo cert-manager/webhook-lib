@@ -20,13 +20,13 @@ import (
 	"context"
 	"testing"
 
+	logtesting "github.com/go-logr/logr/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	testingcmlogs "github.com/jetstack/cert-manager/pkg/logs/testing"
 	"github.com/cert-manager/webhook-lib/handlers"
 )
 
@@ -64,7 +64,7 @@ func TestConvert(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			log := &testingcmlogs.TestLogger{T: t}
+			log := &logtesting.TestLogger{T: t}
 			s := &Server{
 				ConversionWebhook: handlers.NewSchemeBackedConverter(log, defaultScheme),
 				Log:               log,

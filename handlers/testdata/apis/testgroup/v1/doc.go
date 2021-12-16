@@ -18,5 +18,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta
 
-// +groupName=testgroup.testing.cert-manager.io
+// +groupName=testgroup.webhook-lib.cert-manager.io
 package v1

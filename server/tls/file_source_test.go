@@ -26,11 +26,10 @@ import (
 	"testing"
 	"time"
 
+	logtesting "github.com/go-logr/logr/testing"
 	"golang.org/x/sync/errgroup"
 
-	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	logtesting "github.com/jetstack/cert-manager/pkg/logs/testing"
-	"github.com/jetstack/cert-manager/pkg/util/pki"
+	"github.com/cert-manager/webhook-lib/internal/pki"
 )
 
 func TestFileSource_ReadsFile(t *testing.T) {
@@ -163,7 +162,7 @@ func generatePrivateKeyAndCertificate(t *testing.T, serial string) ([]byte, []by
 	if err != nil {
 		t.Fatal(err)
 	}
-	pkBytes, err := pki.EncodePrivateKey(pk, cmapi.PKCS8)
+	pkBytes, err := pki.EncodePKCS8PrivateKey(pk)
 	if err != nil {
 		t.Fatal(err)
 	}

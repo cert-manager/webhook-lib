@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/cert-manager/webhook-lib/handlers/testdata/apis/testgroup"
-	v1 "github.com/cert-manager/webhook-lib/handlers/testdata/apis/testgroup/v1"
+	"github.com/cert-manager/webhook-lib/handlers/testdata/apis/testgroup/v1"
 )
 
 func TestValidateTestType(t *testing.T) {
