@@ -225,6 +225,9 @@ func (s *Server) Run(ctx context.Context) error {
 	serverMux.HandleFunc("/convert", s.handle(s.convert))
 	server := &http.Server{
 		Handler: serverMux,
+		BaseContext: func(_ net.Listener) context.Context {
+			return ctx
+		},
 	}
 	g.Go(func() error {
 		<-gctx.Done()
