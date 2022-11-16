@@ -64,10 +64,10 @@ func TestConvert(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			log := &logtesting.TestLogger{T: t}
+			log := logtesting.NewTestLogger(t)
 			s := &Server{
 				ConversionWebhook: handlers.NewSchemeBackedConverter(log, defaultScheme),
-				Log:               log,
+				log:               log,
 			}
 			out, err := s.convert(context.TODO(), tc.in)
 			if tc.err != "" {

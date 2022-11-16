@@ -51,7 +51,7 @@ func TestConvertTestType(t *testing.T) {
 					{
 						Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -64,7 +64,7 @@ func TestConvertTestType(t *testing.T) {
 					{
 						Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -82,11 +82,11 @@ func TestConvertTestType(t *testing.T) {
 				},
 				ConvertedObjects: []runtime.RawExtension{
 					{
-						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.testing.cert-manager.io/v1","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
+						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.webhook-lib.cert-manager.io/v1","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
 `),
 					},
 					{
-						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.testing.cert-manager.io/v1","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
+						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.webhook-lib.cert-manager.io/v1","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
 `),
 					},
 				},
@@ -125,7 +125,7 @@ func TestConvertTestType(t *testing.T) {
 					{
 						Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -143,7 +143,7 @@ func TestConvertTestType(t *testing.T) {
 				},
 				ConvertedObjects: []runtime.RawExtension{
 					{
-						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.testing.cert-manager.io/v1","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
+						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.webhook-lib.cert-manager.io/v1","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
 `),
 					},
 				},
@@ -156,7 +156,7 @@ func TestConvertTestType(t *testing.T) {
 					{
 						Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -174,7 +174,7 @@ func TestConvertTestType(t *testing.T) {
 				},
 				ConvertedObjects: []runtime.RawExtension{
 					{
-						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.testing.cert-manager.io/v2","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
+						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.webhook-lib.cert-manager.io/v2","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"","testFieldImmutable":""}
 `),
 					},
 				},
@@ -187,7 +187,7 @@ func TestConvertTestType(t *testing.T) {
 					{
 						Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -207,7 +207,7 @@ func TestConvertTestType(t *testing.T) {
 				},
 				ConvertedObjects: []runtime.RawExtension{
 					{
-						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.testing.cert-manager.io/v2","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"atest","testFieldPtrAlt":"something","testFieldImmutable":""}
+						Raw: []byte(`{"kind":"TestType","apiVersion":"testgroup.webhook-lib.cert-manager.io/v2","metadata":{"name":"testing","namespace":"abc","creationTimestamp":null},"testField":"atest","testFieldPtrAlt":"something","testFieldImmutable":""}
 `),
 					},
 				},

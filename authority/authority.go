@@ -42,7 +42,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/cert-manager/webhook-lib/internal/chanutils"
 	"github.com/cert-manager/webhook-lib/internal/pki"
 )
 
@@ -71,7 +70,7 @@ type DynamicAuthority struct {
 	LeafDuration time.Duration
 
 	// Logger to write messages to.
-	Log logr.Logger
+	log logr.Logger
 
 	lister corelisters.SecretNamespaceLister
 	client coreclientset.SecretInterface
@@ -91,9 +90,8 @@ type SignFunc func(template *x509.Certificate) (*x509.Certificate, error)
 
 var _ SignFunc = (&DynamicAuthority{}).Sign
 
-func (d *DynamicAuthority) Run(stopCh <-chan struct{}) error {
-	ctx := chanutils.ContextWithStopCh(context.Background(), stopCh)
-
+func (d *DynamicAuthority) Run(ctx context.Context) error {
+	d.log = logr.FromContextOrDiscard(ctx)
 	if d.SecretNamespace == "" {
 		return fmt.Errorf("SecretNamespace must be set")
 	}
@@ -141,7 +139,7 @@ func (d *DynamicAuthority) Run(stopCh <-chan struct{}) error {
 	// are not triggered.
 	if err = wait.PollImmediateUntil(time.Second*10, func() (done bool, err error) {
 		if err := d.ensureCA(ctx); err != nil {
-			d.Log.Error(err, "error ensuring CA")
+			d.log.Error(err, "error ensuring CA")
 		}
 		// never return 'done'.
 		// this poll only ends when stopCh is closed.
@@ -284,7 +282,7 @@ func (d *DynamicAuthority) caRequiresRegeneration(s *corev1.Secret) bool {
 	pkData := s.Data[corev1.TLSPrivateKeyKey]
 	certData := s.Data[corev1.TLSCertKey]
 	if len(caData) == 0 || len(pkData) == 0 || len(certData) == 0 {
-		d.Log.Info("Missing data in CA secret. Regenerating")
+		d.log.Info("Missing data in CA secret. Regenerating")
 		return true
 	}
 	// ensure that the ca.crt and tls.crt keys are equal
@@ -293,22 +291,22 @@ func (d *DynamicAuthority) caRequiresRegeneration(s *corev1.Secret) bool {
 	}
 	cert, err := tls.X509KeyPair(certData, pkData)
 	if err != nil {
-		d.Log.Error(err, "Failed to parse data in CA secret. Regenerating")
+		d.log.Error(err, "Failed to parse data in CA secret. Regenerating")
 		return true
 	}
 
 	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		d.Log.Error(err, "internal error parsing x509 certificate")
+		d.log.Error(err, "internal error parsing x509 certificate")
 		return true
 	}
 	if !x509Cert.IsCA {
-		d.Log.Info("Stored certificate is not marked as a CA. Regenerating...")
+		d.log.Info("Stored certificate is not marked as a CA. Regenerating...")
 		return true
 	}
 	// renew the root CA when the current one is 2/3 of the way through its life
 	if x509Cert.NotAfter.Sub(time.Now()) < (d.CADuration / 3) {
-		d.Log.Info("Root CA certificate is nearing expiry. Regenerating...")
+		d.log.Info("Root CA certificate is nearing expiry. Regenerating...")
 		return true
 	}
 	return false
@@ -339,7 +337,7 @@ func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) e
 		SerialNumber:          serialNumber,
 		PublicKeyAlgorithm:    x509.ECDSA,
 		Subject: pkix.Name{
-			CommonName: "cert-manager-webhook-ca",
+			CommonName: "webhook-ca",
 		},
 		IsCA:      true,
 		NotBefore: time.Now(),
@@ -389,20 +387,20 @@ func (d *DynamicAuthority) regenerateCA(ctx context.Context, s *corev1.Secret) e
 func (d *DynamicAuthority) handleAdd(obj interface{}) {
 	ctx := context.Background()
 	if err := d.ensureCA(ctx); err != nil {
-		d.Log.Error(err, "error ensuring CA")
+		d.log.Error(err, "error ensuring CA")
 	}
 }
 
 func (d *DynamicAuthority) handleUpdate(_, obj interface{}) {
 	ctx := context.Background()
 	if err := d.ensureCA(ctx); err != nil {
-		d.Log.Error(err, "error ensuring CA")
+		d.log.Error(err, "error ensuring CA")
 	}
 }
 
 func (d *DynamicAuthority) handleDelete(obj interface{}) {
 	ctx := context.Background()
 	if err := d.ensureCA(ctx); err != nil {
-		d.Log.Error(err, "error ensuring CA")
+		d.log.Error(err, "error ensuring CA")
 	}
 }

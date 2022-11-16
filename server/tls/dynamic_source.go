@@ -26,11 +26,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	"github.com/cert-manager/webhook-lib/authority"
 	"github.com/cert-manager/webhook-lib/internal/pki"
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // DynamicSource provides certificate data for a golang HTTP server by
@@ -42,9 +41,7 @@ type DynamicSource struct {
 	// The authority used to sign certificate templates.
 	Authority *authority.DynamicAuthority
 
-	// Log is an optional logger to write informational and error messages to.
-	// If not specified, no messages will be logged.
-	Log logr.Logger
+	log logr.Logger
 
 	cachedCertificate *tls.Certificate
 	lock              sync.Mutex
@@ -52,16 +49,14 @@ type DynamicSource struct {
 
 var _ CertificateSource = &DynamicSource{}
 
-func (f *DynamicSource) Run(stopCh <-chan struct{}) error {
-	if f.Log == nil {
-		f.Log = logr.Discard()
-	}
+func (f *DynamicSource) Run(ctx context.Context) error {
+	f.log = logr.FromContextOrDiscard(ctx)
 
 	// Run the authority in a separate goroutine
 	authorityErrChan := make(chan error)
 	go func() {
 		defer close(authorityErrChan)
-		authorityErrChan <- f.Authority.Run(stopCh)
+		authorityErrChan <- f.Authority.Run(ctx)
 	}()
 
 	nextRenewCh := make(chan time.Time, 1)
@@ -84,11 +79,11 @@ func (f *DynamicSource) Run(stopCh <-chan struct{}) error {
 		}
 
 		if err := f.regenerateCertificate(nextRenewCh); err != nil {
-			f.Log.Error(err, "Failed to generate initial serving certificate, retrying...", "interval", interval)
+			f.log.Error(err, "Failed to generate initial serving certificate, retrying...", "interval", interval)
 			return false, nil
 		}
 		return true, nil
-	}, stopCh); err != nil {
+	}, ctx.Done()); err != nil {
 		// In case of an error, the stopCh is closed; wait for authorityErrChan to be closed too
 		<-authorityErrChan
 
@@ -101,7 +96,7 @@ func (f *DynamicSource) Run(stopCh <-chan struct{}) error {
 	}
 
 	// watch for changes to the root CA
-	rotationChan := f.Authority.WatchRotation(stopCh)
+	rotationChan := f.Authority.WatchRotation(ctx.Done())
 	renewalChan := func() <-chan struct{} {
 		ch := make(chan struct{})
 		go func() {
@@ -121,13 +116,13 @@ func (f *DynamicSource) Run(stopCh <-chan struct{}) error {
 				defer timer.Stop()
 
 				select {
-				case <-stopCh:
+				case <-ctx.Done():
 					return
 				case <-timer.C:
 					// Try to send a message on ch, but also allow for a stop signal or
 					// a new renewMoment to be received
 					select {
-					case <-stopCh:
+					case <-ctx.Done():
 						return
 					case ch <- struct{}{}:
 						// Message was sent on channel
@@ -159,27 +154,27 @@ func (f *DynamicSource) Run(stopCh <-chan struct{}) error {
 			if !ok {
 				return true, context.Canceled
 			}
-			f.Log.Info("Detected root CA rotation - regenerating serving certificates")
+			f.log.Info("Detected root CA rotation - regenerating serving certificates")
 			if err := f.regenerateCertificate(nextRenewCh); err != nil {
-				f.Log.Error(err, "Failed to regenerate serving certificate")
+				f.log.Error(err, "Failed to regenerate serving certificate")
 				// Return an error here and stop the source running - this case should never
 				// occur, and if it does, indicates some form of internal error.
 				return false, err
 			}
 		// trigger regeneration if a renewal is required
 		case <-renewalChan:
-			f.Log.Info("Serving certificate requires renewal, regenerating")
+			f.log.Info("Serving certificate requires renewal, regenerating")
 			if err := f.regenerateCertificate(nextRenewCh); err != nil {
-				f.Log.Error(err, "Failed to regenerate serving certificate")
+				f.log.Error(err, "Failed to regenerate serving certificate")
 				// Return an error here and stop the source running - this case should never
 				// occur, and if it does, indicates some form of internal error.
 				return false, err
 			}
-		case <-stopCh:
+		case <-ctx.Done():
 			return true, context.Canceled
 		}
 		return false, nil
-	}, stopCh); err != nil {
+	}, ctx.Done()); err != nil {
 		// In case of an error, the stopCh is closed; wait for all channels to close
 		<-authorityErrChan
 		<-rotationChan
@@ -262,6 +257,5 @@ func (f *DynamicSource) updateCertificate(pk crypto.Signer, cert *x509.Certifica
 	// renew the certificate 1/3 of the time before its expiry
 	nextRenew <- cert.NotAfter.Add(certDuration / -3)
 
-	f.Log.Info("Updated serving TLS certificate")
 	return nil
 }

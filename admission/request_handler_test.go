@@ -57,19 +57,19 @@ func TestRequestHandler_MutateAppliesDefaultValues(t *testing.T) {
 		UID:       types.UID("abc"),
 		Operation: admissionv1.Create,
 		Kind: metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		RequestKind: &metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		Object: runtime.RawExtension{
 			Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -122,12 +122,12 @@ func TestRequestHandler_MutateAppliesDefaultsInRequestVersion(t *testing.T) {
 		UID:       types.UID("abc"),
 		Operation: admissionv1.Create,
 		Kind: metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		RequestKind: &metav1.GroupVersionKind{
-			Group: "testgroup.testing.cert-manager.io",
+			Group: "testgroup.webhook-lib.cert-manager.io",
 			// Because the API version is v2, we expect the `testDefaultingField` field to be set to `set-in-v2`.
 			// In v1, the field will be set to `set-in-v1`.
 			Version: "v2",
@@ -136,7 +136,7 @@ func TestRequestHandler_MutateAppliesDefaultsInRequestVersion(t *testing.T) {
 		Object: runtime.RawExtension{
 			Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -182,19 +182,19 @@ func TestRequestHandler_MutateSkipsMutation(t *testing.T) {
 		UID:       types.UID("abc"),
 		Operation: admissionv1.Create,
 		Kind: metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		RequestKind: &metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		Object: runtime.RawExtension{
 			Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
@@ -240,19 +240,19 @@ func TestRequestHandler_ValidateReturnsErrorsAndWarnings(t *testing.T) {
 		UID:       types.UID("abc"),
 		Operation: admissionv1.Create,
 		Kind: metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		RequestKind: &metav1.GroupVersionKind{
-			Group:   "testgroup.testing.cert-manager.io",
+			Group:   "testgroup.webhook-lib.cert-manager.io",
 			Version: "v1",
 			Kind:    "TestType",
 		},
 		Object: runtime.RawExtension{
 			Raw: []byte(`
 {
-	"apiVersion": "testgroup.testing.cert-manager.io/v1",
+	"apiVersion": "testgroup.webhook-lib.cert-manager.io/v1",
 	"kind": "TestType",
 	"metadata": {
 		"name": "testing",
